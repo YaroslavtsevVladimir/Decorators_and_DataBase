@@ -6,6 +6,7 @@ import requests
 import sqlite3
 import random
 from lxml import html
+from functools import wraps
 
 
 url = 'https://www.google.com'
@@ -15,23 +16,10 @@ cur.execute("CREATE TABLE IF NOT EXISTS randtext (url text, attribute_text text)
 conn.commit()
 
 
-def write_data_to_database(func):
+def write_and_check_url_in_database(func):
     """
-    Decorator, who write result of
-    get_random_text(address) in database.
-    :param func: get_random_text.
-    :return: decorator1
-    """
-
-    def decorator1(address):
-        cur.execute("INSERT INTO randtext VALUES (?, ?)", (address, str(func(address))))
-        conn.commit()
-    return decorator1
-
-
-def check_url_in_database(func):
-    """
-    Decorator, who checked url in database.
+    Decorator, who write result of get_random_text(address)
+     in database and checked url in database.
     If the url is in the database, it return
     all the 'text' lines from the table, otherwise
     the text is taken from the get_random_text(address).
@@ -40,6 +28,9 @@ def check_url_in_database(func):
     """
 
     def decorator2(address):
+        txt = str(func(address))
+        cur.execute("INSERT INTO randtext VALUES (?, ?)", (address, txt))
+
         sql = "SELECT * FROM randtext WHERE url=?"
         cur.execute(sql, [url])
         info_list = cur.fetchall()
@@ -55,8 +46,7 @@ def check_url_in_database(func):
     return decorator2
 
 
-@write_data_to_database
-@check_url_in_database
+@write_and_check_url_in_database
 def get_random_text(address):
     """
     Get random text in all HTML page.
@@ -77,6 +67,7 @@ def main():
 
 
 if __name__ == '__main__':
+
     main()
     conn.commit()
     conn.close()
