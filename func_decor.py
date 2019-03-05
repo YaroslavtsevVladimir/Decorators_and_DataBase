@@ -9,7 +9,7 @@ from lxml import html
 from functools import wraps
 
 
-url = "https://www.google.com"
+url = "https://www.yandex.ru"
 conn = sqlite3.connect("site_checked.db")
 cur = conn.cursor()
 cur.execute("CREATE TABLE IF NOT EXISTS randtext(url text, attribute_text text)")
@@ -28,20 +28,24 @@ def cached(func):
     """
     @wraps(func)
     def wrapper(address):
-        cur.execute("INSERT INTO randtext VALUES (?, ?)", (address, str(func(address))))
 
         sql = "SELECT * FROM randtext WHERE url=?"
         cur.execute(sql, [url])
         info_list = cur.fetchall()
-        for line in info_list:
-            if address in line:
-                sql = "SELECT attribute_text FROM randtext WHERE url=?"
-                cur.execute(sql, [url])
-                txt_list = cur.fetchall()
-                result = [txt_list[i][0] for i in range(len(txt_list))]
-                return result
-            else:
-                return func(address)
+        if not info_list:
+            func(address)
+            return cur.execute("INSERT INTO randtext VALUES (?, ?)", (address, str(func(address))))
+        else:
+            cur.execute("INSERT INTO randtext VALUES (?, ?)", (address, str(func(address))))
+            for line in info_list:
+                if address in line:
+                    sql = "SELECT attribute_text FROM randtext WHERE url=?"
+                    cur.execute(sql, [url])
+                    txt_list = cur.fetchall()
+                    result = [txt_list[i][0] for i in range(len(txt_list))]
+                    return result
+                else:
+                    return func(address)
     return wrapper
 
 
