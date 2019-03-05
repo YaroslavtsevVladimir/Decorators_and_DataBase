@@ -9,14 +9,14 @@ from lxml import html
 from functools import wraps
 
 
-url = 'https://www.google.com'
+url = "https://www.google.com"
 conn = sqlite3.connect("site_checked.db")
 cur = conn.cursor()
-cur.execute("CREATE TABLE IF NOT EXISTS randtext (url text, attribute_text text)")
+cur.execute("CREATE TABLE IF NOT EXISTS randtext(url text, attribute_text text)")
 conn.commit()
 
 
-def write_and_check_url_in_database(func):
+def cached(func):
     """
     Decorator, who write result of get_random_text(address)
      in database and checked url in database.
@@ -26,10 +26,9 @@ def write_and_check_url_in_database(func):
     :param func: get_random_text.
     :return: text or list with 'text' lines.
     """
-
-    def decorator2(address):
-        txt = str(func(address))
-        cur.execute("INSERT INTO randtext VALUES (?, ?)", (address, txt))
+    @wraps(func)
+    def wrapper(address):
+        cur.execute("INSERT INTO randtext VALUES (?, ?)", (address, str(func(address))))
 
         sql = "SELECT * FROM randtext WHERE url=?"
         cur.execute(sql, [url])
@@ -43,10 +42,10 @@ def write_and_check_url_in_database(func):
                 return result
             else:
                 return func(address)
-    return decorator2
+    return wrapper
 
 
-@write_and_check_url_in_database
+@cached
 def get_random_text(address):
     """
     Get random text in all HTML page.
