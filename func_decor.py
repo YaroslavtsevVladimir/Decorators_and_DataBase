@@ -8,7 +8,6 @@ import random
 from lxml import html
 from functools import wraps
 
-
 url = "https://www.yandex.ru"
 conn = sqlite3.connect("site_checked.db")
 cur = conn.cursor()
@@ -18,17 +17,16 @@ conn.commit()
 
 def cached(func):
     """
-    Decorator, who write result of get_random_text(address)
-     in database and checked url in database.
+    Decorator, who checked url in database.
     If the url is in the database, it return
-    all the 'text' lines from the table, otherwise
+    the text line from the table, otherwise
     the text is taken from the get_random_text(address).
     :param func: get_random_text.
-    :return: text or list with 'text' lines.
+    :return: text from selected site.
     """
+
     @wraps(func)
     def wrapper(address):
-
         sql = "SELECT * FROM randtext WHERE url=?"
         cur.execute(sql, [url])
         info_list = cur.fetchall()
@@ -36,16 +34,8 @@ def cached(func):
             func(address)
             return cur.execute("INSERT INTO randtext VALUES (?, ?)", (address, str(func(address))))
         else:
-            cur.execute("INSERT INTO randtext VALUES (?, ?)", (address, str(func(address))))
-            for line in info_list:
-                if address in line:
-                    sql = "SELECT attribute_text FROM randtext WHERE url=?"
-                    cur.execute(sql, [url])
-                    txt_list = cur.fetchall()
-                    result = [txt_list[i][0] for i in range(len(txt_list))]
-                    return result
-                else:
-                    return func(address)
+            result = info_list[0][1]
+            return result
     return wrapper
 
 
